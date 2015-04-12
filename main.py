@@ -1,21 +1,22 @@
 import cv2
 import numpy as np
+import serial
 
 def main():
 
     #Cascade Classifiers
-    face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_alt.xml')
-    kScaleFactor = 1.3
-    kMinNeighbors = 5
+    face_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_frontalface_alt.xml")
+    kScaleFactor = 1.2
+    kMinNeighbors = 4
 
     #Code parameters
-    kCamPort = 1
+    kCamPort = 0
     kFrameInterval = 30
-    kResolution = 1
+    kResolution = 0
 
     #Frame parameters
-    kFrameWidth = 640
-    kFrameHeight = 480
+    kFrameWidth = 320
+    kFrameHeight = 240
 
     #Frame variables
     kFrameWidthBorder = (kFrameWidth / 10) * 2
@@ -51,7 +52,7 @@ def main():
     debug = False
     debug_mov = False
     debug_mov_img = True
-    useGUI = True
+    useGUI = False
 
     #Initialization variables to startup cam
     ret = False
@@ -59,6 +60,12 @@ def main():
 
     #Window Name
     windowName = "3D Face Tracker"
+
+    #Serial connection
+    arduino_port = '/dev/ttyACM0'
+    arduino_bitrate = 9600
+    arduino = None
+    connected = False
 
     #Start cam and windows if the GUI is enabled
     cam = cv2.VideoCapture(kCamPort)
@@ -91,8 +98,26 @@ def main():
         else:
             camClosed = True
 
+    try:
+        arduino = serial.Serial(arduino_port, arduino_bitrate)
+        connected = True
+    except serial.serialutil.SerialException as err:
+        print(err)
+        connected = False
+        pass
+
     #CamShift Loop
     while ret:
+        #Connect to arduino if not already connected 
+        if not connected:
+            try:
+                arduino = serial.Serial(arduino_port, arduino_bitrate)
+                connected = True
+            except serial.serialutil.SerialException as err:
+                print(err)
+                connected = False
+                pass
+
         #Color conversion to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         #Detect faces with Haar Cascade Classifier
@@ -171,9 +196,15 @@ def main():
             cv2.circle(img, (x_prod, y_prod), 4, (255, 0, 0), -1) #blue point, average of face centroids
             cv2.circle(img, tuple(kCenterPoint), 2, (0, 255, 0), -1) #green point, center of frame
             if debug_mov_img:
-                cv2.putText(img, "X Movement: %d" % mov_x, (10, 400), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (100, 20, 150), 1)
-                cv2.putText(img, "Y Movement: %d" % mov_y, (10, 430), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (100, 20, 150), 1)
-                cv2.putText(img, "Z Movement: %d" % mov_z, (10, 460), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (100, 20, 150), 1)
+                cv2.putText(img, "X Movement: %d" % mov_x, (10, 200), cv2.FONT_HERSHEY_TRIPLEX, 0.35, (100, 20, 150), 1)
+                cv2.putText(img, "Y Movement: %d" % mov_y, (10, 215), cv2.FONT_HERSHEY_TRIPLEX, 0.35, (100, 20, 150), 1)
+                cv2.putText(img, "Z Movement: %d" % mov_z, (10, 230), cv2.FONT_HERSHEY_TRIPLEX, 0.35, (100, 20, 150), 1)
+
+        #If connected, send data
+        if connected:
+            arduino.write(str(mov_x))
+            arduino.write(str(mov_y))
+            arduino.write(str(mov_z))
 
         #Reset average point and deltas to avoid large numbers
         x_prod = 0
