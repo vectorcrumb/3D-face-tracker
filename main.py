@@ -52,7 +52,7 @@ def main():
     debug = False
     debug_mov = False
     debug_mov_img = True
-    useGUI = False
+    useGUI = True
 
     #Initialization variables to startup cam
     ret = False
