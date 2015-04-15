@@ -51,8 +51,8 @@ def main():
     # "Preprocessor" variables
     debug = False
     debug_mov = False
-    debug_mov_img = True
-    useGUI = True
+    debug_mov_img = False
+    useGUI = False
 
     #Initialization variables to startup cam
     ret = False
